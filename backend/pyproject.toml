@@ -1,0 +1,19 @@
+[project]
+name = "chatgpt-interview"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "openai",
+    "slowapi",
+    "psycopg2-binary",
+]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+]
