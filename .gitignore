@@ -3,6 +3,5 @@ __pycache__/
 .env
 .venv/
 chat.db
-uv.lock
 frontend/node_modules/
 frontend/dist/

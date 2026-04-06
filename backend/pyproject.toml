@@ -6,7 +6,6 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "openai",
-    "slowapi",
     "psycopg2-binary",
 ]
 
