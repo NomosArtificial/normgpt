@@ -1,3 +1,8 @@
+interface StreamChunk {
+  type: "text" | "done";
+  content: string;
+}
+
 export async function processSSEStream(
   response: Response,
   onText: (chunk: string) => void,
@@ -17,13 +22,14 @@ export async function processSSEStream(
 
     for (const line of lines) {
       if (!line.startsWith("data: ")) continue;
-      const payload = line.slice(6);
-      if (payload === "[DONE]") {
+      const chunk: StreamChunk = JSON.parse(line.slice(6));
+
+      if (chunk.type === "done") {
         onDone();
         return;
       }
 
-      onText(payload);
+      onText(chunk.content);
     }
   }
 

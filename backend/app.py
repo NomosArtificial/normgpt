@@ -4,7 +4,6 @@ import openai
 import uvicorn
 from fastapi import APIRouter, BackgroundTasks, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
-from starlette.background import BackgroundTask
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -32,54 +31,12 @@ class ChatRequest(BaseModel):
     content: str
 
 
+class StreamChunk(BaseModel):
+    type: str
+    content: str = ""
+
+
 SYSTEM_PROMPT = "You are a helpful assistant."
-
-
-def _stream_response(conv_id: str, messages: list[dict]):
-    """Stream an OpenAI chat completion."""
-    collected = []
-
-    def generate():
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=messages,
-            stream=True,
-        )
-
-        for chunk in response:
-            delta = chunk.choices[0].delta
-            if delta.content:
-                collected.append(delta.content)
-                yield f"data: {delta.content}\n\n"
-
-        yield "data: [DONE]\n\n"
-
-    def save_message():
-        full_text = "".join(collected)
-        if full_text:
-            db.add_message(conv_id, "assistant", full_text)
-
-    return StreamingResponse(
-        generate(),
-        media_type="text/event-stream",
-        background=BackgroundTask(save_message),
-    )
-
-
-def _generate_title(conv_id: str, first_message: str):
-    """Generate a conversation title via the LLM."""
-    resp = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "system",
-                "content": "Generate a short conversation title (max 6 words) for the following user message. Reply with only the title, no quotes or punctuation at the end.",
-            },
-            {"role": "user", "content": first_message},
-        ],
-    )
-    title = resp.choices[0].message.content.strip()
-    db.set_conversation_title(conv_id, title)
 
 
 router = APIRouter(prefix="/api")
@@ -102,6 +59,45 @@ def get_messages(conv_id: str):
     return db.get_messages(conv_id)
 
 
+def _stream_response(conv_id: str, messages: list[dict], background_tasks: BackgroundTasks):
+    """Stream an OpenAI chat completion."""
+    collected = []
+
+    def generate():
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=messages,
+            stream=True,
+        )
+
+        for chunk in response:
+            delta = chunk.choices[0].delta
+            if delta.content:
+                collected.append(delta.content)
+                yield f"data: {StreamChunk(type='text', content=delta.content).model_dump_json()}\n\n"
+
+        background_tasks.add_task(db.add_message, conv_id, "assistant", "".join(collected))
+        yield f"data: {StreamChunk(type='done').model_dump_json()}\n\n"
+
+    return StreamingResponse(generate(), media_type="text/event-stream")
+
+
+def _generate_title(conv_id: str, first_message: str):
+    """Generate a conversation title via the LLM."""
+    resp = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "Generate a short conversation title (max 6 words) for the following user message. Reply with only the title, no quotes or punctuation at the end.",
+            },
+            {"role": "user", "content": first_message},
+        ],
+    )
+    title = resp.choices[0].message.content.strip()
+    db.set_conversation_title(conv_id, title)
+
+
 @router.post("/conversations/{conv_id}/chat")
 def chat(conv_id: str, req: ChatRequest, background_tasks: BackgroundTasks):
     if not db.conversation_exists(conv_id):
@@ -111,15 +107,13 @@ def chat(conv_id: str, req: ChatRequest, background_tasks: BackgroundTasks):
 
     db.add_message(conv_id, "user", req.content)
 
-    # Auto-title on first message using LLM summarization
     if len(history) == 0:
         background_tasks.add_task(_generate_title, conv_id, req.content)
 
-    # Call OpenAI with streaming
     history.append({"role": "user", "content": req.content})
     messages = [{"role": "system", "content": SYSTEM_PROMPT}] + history
 
-    return _stream_response(conv_id, messages)
+    return _stream_response(conv_id, messages, background_tasks)
 
 
 @router.delete("/conversations/{conv_id}")

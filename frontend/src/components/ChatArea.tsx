@@ -102,7 +102,7 @@ export default function ChatArea({
             content={m.content}
           />
         ))}
-        {streamingText && <ChatMessage role="assistant" content={streamingText} />}
+        {streamingText && <ChatMessage role="assistant" content={streamingText} streaming />}
         {isStreaming && !streamingText && <LoadingSpinner />}
         <div ref={messagesEndRef} />
       </div>
