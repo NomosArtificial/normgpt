@@ -1,13 +1,12 @@
 # chatgpt-interview
 
-A minimal ChatGPT clone built with FastAPI, SQLite, and the OpenAI API.
+A minimal ChatGPT clone.
 
 ## Setup
 
 ```bash
-uv sync
 export OPENAI_API_KEY=sk-...
-uv run python app.py
+docker compose up --build
 ```
 
 Open [http://localhost:8000](http://localhost:8000).
