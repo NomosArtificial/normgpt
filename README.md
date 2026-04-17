@@ -1,4 +1,4 @@
-# chatgpt-interview
+# normgpt
 
 A minimal ChatGPT clone.
 
