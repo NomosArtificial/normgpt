@@ -9,8 +9,8 @@ interface Props {
 
 export default function ConversationItem({ conversation, isActive, onSelect, onDelete }: Props) {
   return (
-    <div className={`conv-item${isActive ? " active" : ""}`}>
-      <span className="conv-title" onClick={onSelect}>
+    <div className={`conv-item${isActive ? " active" : ""}`} onClick={onSelect}>
+      <span className="conv-title">
         {conversation.title}
       </span>
       <button
