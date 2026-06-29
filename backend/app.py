@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
 
+import os
+
 import openai
 import uvicorn
 from fastapi import APIRouter, BackgroundTasks, FastAPI, HTTPException
@@ -9,7 +11,10 @@ from pydantic import BaseModel
 
 from db import ChatDB
 
-client = openai.OpenAI()
+client = openai.OpenAI(
+    base_url="https://openrouter.ai/api/v1",
+    api_key=os.environ["OPENROUTER_API_KEY"],
+)
 db = ChatDB()
 
 
@@ -65,7 +70,7 @@ def _stream_response(conv_id: str, messages: list[dict], background_tasks: Backg
 
     def generate():
         response = client.chat.completions.create(
-            model="gpt-4o",
+            model="openai/gpt-4o",
             messages=messages,
             stream=True,
         )
@@ -85,7 +90,7 @@ def _stream_response(conv_id: str, messages: list[dict], background_tasks: Backg
 def _generate_title(conv_id: str, first_message: str):
     """Generate a conversation title via the LLM."""
     resp = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model="openai/gpt-4o-mini",
         messages=[
             {
                 "role": "system",
