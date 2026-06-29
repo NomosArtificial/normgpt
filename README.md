@@ -4,8 +4,11 @@ A minimal ChatGPT clone.
 
 ## Setup
 
+Copy `.env.sample` to `.env` and fill in your OpenRouter API key:
+
 ```bash
-export OPENAI_API_KEY=sk-...
+cp .env.sample .env
+# edit .env and set OPENROUTER_API_KEY
 docker compose up --build
 ```
 

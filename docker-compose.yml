@@ -24,7 +24,7 @@ services:
       - "8000"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/chat
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
     depends_on:
       db:
         condition: service_healthy
